@@ -7,61 +7,23 @@ import { FaGoogle, FaTwitter, FaWallet } from "react-icons/fa";
 export default function LoginPage() {
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     setLoading("google");
     try {
-      const response = await fetch("http://localhost:8080/api/v1/auth/google", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        if (data.redirectUrl) {
-          window.location.href = data.redirectUrl;
-        } else {
-          toast.success("Successfully signed in with Google!");
-        }
-      } else {
-        toast.error(data.message || "Failed to sign in with Google");
-      }
+      // Redirect trực tiếp đến endpoint OAuth
+      window.location.href = "http://localhost:8080/api/v1/auth/google";
     } catch (error) {
       toast.error("An error occurred. Please try again.");
-    } finally {
       setLoading(null);
     }
   };
 
-  const handleTwitterSignIn = async () => {
+  const handleTwitterSignIn = () => {
     setLoading("twitter");
     try {
-      const response = await fetch(
-        "http://localhost:8080/api/v1/auth/twitter",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        if (data.redirectUrl) {
-          window.location.href = data.redirectUrl;
-        } else {
-          toast.success("Successfully signed in with Twitter!");
-        }
-      } else {
-        toast.error(data.message || "Failed to sign in with Twitter");
-      }
+      window.location.href = "http://localhost:8080/api/v1/auth/twitter";
     } catch (error) {
       toast.error("An error occurred. Please try again.");
-    } finally {
       setLoading(null);
     }
   };
