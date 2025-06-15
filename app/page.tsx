@@ -1,73 +1,76 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import toast from "react-hot-toast"
-import { FaGoogle, FaTwitter, FaWallet } from "react-icons/fa"
+import { useState } from "react";
+import toast from "react-hot-toast";
+import { FaGoogle, FaTwitter, FaWallet } from "react-icons/fa";
 
 export default function LoginPage() {
-  const [loading, setLoading] = useState<string | null>(null)
+  const [loading, setLoading] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
-    setLoading("google")
+    setLoading("google");
     try {
-      const response = await fetch("/api/v1/auth/google", {
+      const response = await fetch("http://localhost:8080/api/v1/auth/google", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
         if (data.redirectUrl) {
-          window.location.href = data.redirectUrl
+          window.location.href = data.redirectUrl;
         } else {
-          toast.success("Successfully signed in with Google!")
+          toast.success("Successfully signed in with Google!");
         }
       } else {
-        toast.error(data.message || "Failed to sign in with Google")
+        toast.error(data.message || "Failed to sign in with Google");
       }
     } catch (error) {
-      toast.error("An error occurred. Please try again.")
+      toast.error("An error occurred. Please try again.");
     } finally {
-      setLoading(null)
+      setLoading(null);
     }
-  }
+  };
 
   const handleTwitterSignIn = async () => {
-    setLoading("twitter")
+    setLoading("twitter");
     try {
-      const response = await fetch("/api/v1/auth/twitter", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await fetch(
+        "http://localhost:8080/api/v1/auth/twitter",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
         if (data.redirectUrl) {
-          window.location.href = data.redirectUrl
+          window.location.href = data.redirectUrl;
         } else {
-          toast.success("Successfully signed in with Twitter!")
+          toast.success("Successfully signed in with Twitter!");
         }
       } else {
-        toast.error(data.message || "Failed to sign in with Twitter")
+        toast.error(data.message || "Failed to sign in with Twitter");
       }
     } catch (error) {
-      toast.error("An error occurred. Please try again.")
+      toast.error("An error occurred. Please try again.");
     } finally {
-      setLoading(null)
+      setLoading(null);
     }
-  }
+  };
 
   const handleWalletConnect = async () => {
-    setLoading("wallet")
+    setLoading("wallet");
     try {
       // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       toast("Coming soon", {
         icon: "🚀",
         style: {
@@ -75,19 +78,23 @@ export default function LoginPage() {
           background: "#333",
           color: "#fff",
         },
-      })
+      });
     } finally {
-      setLoading(null)
+      setLoading(null);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">Sign in to your account</h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Choose your preferred sign-in method</p>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Choose your preferred sign-in method
+          </p>
         </div>
 
         {/* Login Card */}
@@ -133,7 +140,9 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-300 dark:border-gray-600" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or</span>
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                  Or
+                </span>
               </div>
             </div>
 
@@ -159,11 +168,17 @@ export default function LoginPage() {
           <div className="mt-8 text-center">
             <p className="text-xs text-gray-500 dark:text-gray-400">
               By signing in, you agree to our{" "}
-              <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
+              <a
+                href="#"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
                 Terms of Service
               </a>{" "}
               and{" "}
-              <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">
+              <a
+                href="#"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
                 Privacy Policy
               </a>
             </p>
@@ -171,5 +186,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
