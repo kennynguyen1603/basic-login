@@ -11,7 +11,7 @@ export default function LoginPage() {
     setLoading("google");
     try {
       const response = await fetch("http://localhost:8080/api/v1/auth/google", {
-        method: "POST",
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
@@ -41,7 +41,7 @@ export default function LoginPage() {
       const response = await fetch(
         "http://localhost:8080/api/v1/auth/twitter",
         {
-          method: "POST",
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
