@@ -10,7 +10,7 @@ import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
 
-export const API_URL_AUTH = "http://localhost:8080/api/v1/auth";
+export const API_URL_AUTH = `${process.env.NEXT_PUBLIC_API_URL}/auth`;
 
 export default function LoginPage() {
   const [loading, setLoading] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export default function LoginPage() {
   const handleGoogleSignIn = () => {
     setLoading("google");
     try {
-      window.location.href = "http://localhost:8080/api/v1/auth/google";
+      window.location.href = "https://crion.onrender.com/api/v1/auth/google";
     } catch (error) {
       toast.error("An error occurred. Please try again.");
       setLoading(null);
@@ -30,7 +30,7 @@ export default function LoginPage() {
   const handleTwitterSignIn = () => {
     setLoading("twitter");
     try {
-      window.location.href = "http://localhost:8080/api/v1/auth/twitter";
+      window.location.href = "https://crion.onrender.com/api/v1/auth/twitter";
     } catch (error) {
       toast.error("Failed to connect to Twitter.");
       setLoading(null);
