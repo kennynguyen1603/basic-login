@@ -5,6 +5,7 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { truncateAddress } from "@/lib/utils";
+import { API_URL_AUTH } from "../page";
 
 interface UserData {
   id: string;
@@ -35,10 +36,25 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     try {
+      const accessToken = localStorage.getItem("accessToken");
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (accessToken) {
+        const response = await fetch(`${API_URL_AUTH}/logout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!response.ok) {
+          throw new Error("Logout API call failed");
+        }
+      }
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("userData");
-      await disconnect();
+      disconnect();
       router.push("/");
     } catch (error) {
       console.error("Logout error:", error);

@@ -10,7 +10,7 @@ import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
 
-const API_URL = "http://localhost:8080/api/v1/auth";
+export const API_URL_AUTH = "http://localhost:8080/api/v1/auth";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export default function LoginPage() {
       const publicKey = account.publicKey.toString();
 
       // 1. Get nonce from server
-      const nonceResponse = await axios.get(`${API_URL}/nonce`, {
+      const nonceResponse = await axios.get(`${API_URL_AUTH}/nonce`, {
         params: { wallet_address: walletAddress },
       });
 
@@ -81,7 +81,7 @@ export default function LoginPage() {
 
       // 3. Send login request with signature
       const loginResponse = await axios.post(
-        `${API_URL}/wallet-login`,
+        `${API_URL_AUTH}/wallet-login`,
         loginPayload
       );
 
