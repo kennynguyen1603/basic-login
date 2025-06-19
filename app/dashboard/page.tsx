@@ -9,6 +9,7 @@ import { FaGoogle, FaTwitter } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { truncateAddress } from "@/lib/utils";
 import { API_URL_AUTH } from "../page";
+import axios, { AxiosError } from "axios";
 
 interface UserData {
   id: string;
@@ -50,24 +51,33 @@ export default function DashboardPage() {
         throw new Error("No access token found");
       }
 
-      const response = await fetch(
+      console.log(
+        "Calling Google link API with URL:",
+        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/google`
+      );
+
+      const { data } = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/google`,
         {
-          method: "GET",
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to initiate Google linking");
-      }
-
-      const data = await response.json();
-      window.location.href = data.url; // Redirect to Google OAuth
+      console.log("Google link API response:", data);
+      window.location.href = data.url;
     } catch (error) {
-      console.error("Google linking error:", error);
+      if (error instanceof AxiosError) {
+        console.error("Google linking error details:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          config: error.config,
+        });
+      } else {
+        console.error("Unexpected error:", error);
+      }
       toast.error("Failed to link Google account");
     } finally {
       setLoading(null);
@@ -82,22 +92,16 @@ export default function DashboardPage() {
         throw new Error("No access token found");
       }
 
-      const response = await fetch(
+      const { data } = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/twitter`,
         {
-          method: "GET",
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to initiate Twitter linking");
-      }
-
-      const data = await response.json();
-      window.location.href = data.url; // Redirect to Twitter OAuth
+      window.location.href = data.url;
     } catch (error) {
       console.error("Twitter linking error:", error);
       toast.error("Failed to link Twitter account");
@@ -111,17 +115,16 @@ export default function DashboardPage() {
       const accessToken = localStorage.getItem("accessToken");
       const refreshToken = localStorage.getItem("refreshToken");
       if (accessToken) {
-        const response = await fetch(`${API_URL_AUTH}/logout`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ refreshToken }),
-        });
-        if (!response.ok) {
-          throw new Error("Logout API call failed");
-        }
+        await axios.post(
+          `${API_URL_AUTH}/logout`,
+          { refreshToken },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
       }
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
