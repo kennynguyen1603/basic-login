@@ -1,9 +1,12 @@
 "use client";
 
+import React from "react";
 import { useEffect, useState } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { FaGoogle, FaTwitter } from "react-icons/fa";
+import toast from "react-hot-toast";
 import { truncateAddress } from "@/lib/utils";
 import { API_URL_AUTH } from "../page";
 
@@ -12,12 +15,17 @@ interface UserData {
   email?: string;
   name?: string;
   walletAddress?: string;
+  linkedAccounts?: {
+    google?: boolean;
+    twitter?: boolean;
+  };
 }
 
 export default function DashboardPage() {
   const { account, connected, disconnect } = useWallet();
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -33,6 +41,70 @@ export default function DashboardPage() {
       setUserData(JSON.parse(userDataStr));
     }
   }, [connected, router]);
+
+  const handleGoogleLink = async () => {
+    setLoading("google");
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        throw new Error("No access token found");
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/google`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to initiate Google linking");
+      }
+
+      const data = await response.json();
+      window.location.href = data.url; // Redirect to Google OAuth
+    } catch (error) {
+      console.error("Google linking error:", error);
+      toast.error("Failed to link Google account");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleTwitterLink = async () => {
+    setLoading("twitter");
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        throw new Error("No access token found");
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/twitter`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to initiate Twitter linking");
+      }
+
+      const data = await response.json();
+      window.location.href = data.url; // Redirect to Twitter OAuth
+    } catch (error) {
+      console.error("Twitter linking error:", error);
+      toast.error("Failed to link Twitter account");
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -171,13 +243,57 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Activity Card */}
+          {/* Social Links Card */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Recent Activity
+              Social Links
             </h2>
-            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-              No recent activity
+            <div className="space-y-4">
+              <button
+                onClick={handleGoogleLink}
+                disabled={loading !== null || userData.linkedAccounts?.google}
+                className="group relative w-full flex justify-center items-center py-4 px-4 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <span className="absolute left-4">
+                  <FaGoogle
+                    className="w-5 h-5 text-red-500"
+                    aria-hidden="true"
+                  />
+                </span>
+                {loading === "google" ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 dark:border-gray-200 mr-2"></div>
+                    Linking...
+                  </div>
+                ) : userData.linkedAccounts?.google ? (
+                  "Google Connected"
+                ) : (
+                  "Link Google Account"
+                )}
+              </button>
+
+              <button
+                onClick={handleTwitterLink}
+                disabled={loading !== null || userData.linkedAccounts?.twitter}
+                className="group relative w-full flex justify-center items-center py-4 px-4 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <span className="absolute left-4">
+                  <FaTwitter
+                    className="w-5 h-5 text-blue-400"
+                    aria-hidden="true"
+                  />
+                </span>
+                {loading === "twitter" ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 dark:border-gray-200 mr-2"></div>
+                    Linking...
+                  </div>
+                ) : userData.linkedAccounts?.twitter ? (
+                  "Twitter Connected"
+                ) : (
+                  "Link Twitter Account"
+                )}
+              </button>
             </div>
           </div>
         </div>

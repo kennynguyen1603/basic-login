@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { FaGoogle, FaTwitter } from "react-icons/fa";
-import { WalletSelector } from "@/components/wallet-selector";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
 import Link from "next/link";
+import { WalletSelector } from "@/components/wallet-selector";
 
 export const API_URL_AUTH = `${process.env.NEXT_PUBLIC_API_URL}/auth`;
 
@@ -16,26 +15,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const { account, connected, signMessage } = useWallet();
   const router = useRouter();
-
-  const handleGoogleSignIn = () => {
-    setLoading("google");
-    try {
-      window.location.href = "https://crion.onrender.com/api/v1/auth/google";
-    } catch (error) {
-      toast.error("An error occurred. Please try again.");
-      setLoading(null);
-    }
-  };
-
-  const handleTwitterSignIn = () => {
-    setLoading("twitter");
-    try {
-      window.location.href = "https://crion.onrender.com/api/v1/auth/twitter";
-    } catch (error) {
-      toast.error("Failed to connect to Twitter.");
-      setLoading(null);
-    }
-  };
 
   const handleWalletLogin = async () => {
     if (!connected || !account?.address || !account?.publicKey) {
@@ -107,6 +86,7 @@ export default function LoginPage() {
       setLoading(null);
     }
   };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-md space-y-8">
@@ -131,63 +111,6 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="bg-white dark:bg-gray-800 shadow-2xl rounded-2xl px-8 py-10 border border-gray-200 dark:border-gray-700">
           <div className="space-y-6">
-            {/* Social Logins */}
-            <div className="space-y-4">
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading !== null}
-                className="group relative w-full flex justify-center items-center py-4 px-4 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <span className="absolute left-4">
-                  <FaGoogle
-                    className="w-5 h-5 text-red-500"
-                    aria-hidden="true"
-                  />
-                </span>
-                {loading === "google" ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 dark:border-gray-200 mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  "Continue with Google"
-                )}
-              </button>
-
-              <button
-                onClick={handleTwitterSignIn}
-                disabled={loading !== null}
-                className="group relative w-full flex justify-center items-center py-4 px-4 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <span className="absolute left-4">
-                  <FaTwitter
-                    className="w-5 h-5 text-blue-400"
-                    aria-hidden="true"
-                  />
-                </span>
-                {loading === "twitter" ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 dark:border-gray-200 mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  "Continue with Twitter"
-                )}
-              </button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
             {/* Wallet Connect */}
             <div className="space-y-4">
               <WalletSelector />
