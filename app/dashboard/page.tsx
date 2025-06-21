@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { FaGoogle, FaTwitter } from "react-icons/fa";
+import { FaGithub, FaGoogle, FaTwitter } from "react-icons/fa";
 import { IconType } from "react-icons";
 import toast from "react-hot-toast";
 import { truncateAddress } from "@/lib/utils";
@@ -20,6 +20,7 @@ interface UserData {
   linkedAccounts?: {
     google?: boolean;
     twitter?: boolean;
+    github?: boolean;
   };
 }
 
@@ -44,7 +45,7 @@ export default function DashboardPage() {
     }
   }, [connected, router]);
   const handleSocialLink = async (
-    provider: "google" | "twitter" | "github"
+    provider: "google" | "twitter" | "github" | "linkedin"
   ) => {
     setLoading(provider);
     let popupWindow: Window | null = null;
@@ -187,7 +188,7 @@ export default function DashboardPage() {
   // Thay thế các hàm cũ bằng hàm mới
   const handleGoogleLink = () => handleSocialLink("google");
   const handleTwitterLink = () => handleSocialLink("twitter");
-
+  const handleGithubLink = () => handleSocialLink("github");
   const handleLogout = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
@@ -375,6 +376,29 @@ export default function DashboardPage() {
                   "Twitter Connected"
                 ) : (
                   "Link Twitter Account"
+                )}
+              </button>
+              <button
+                onClick={() => handleSocialLink("github")}
+                disabled={loading !== null || userData.linkedAccounts?.github}
+                className="group relative w-full flex justify-center items-center py-4 px-4 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <span className="absolute left-4">
+                  <FaGithub
+                    className="w-5 h-5 text-gray-900 dark:text-white"
+                    aria-hidden="true"
+                    as="svg"
+                  />
+                </span>
+                {loading === "github" ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 dark:border-gray-200 mr-2"></div>
+                    Linking...
+                  </div>
+                ) : userData.linkedAccounts?.github ? (
+                  "GitHub Connected"
+                ) : (
+                  "Link GitHub Account"
                 )}
               </button>
             </div>
