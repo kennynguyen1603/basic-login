@@ -43,115 +43,10 @@ export default function DashboardPage() {
       setUserData(JSON.parse(userDataStr));
     }
   }, [connected, router]);
-
-  const handleGoogleLink = async () => {
-    setLoading("google");
-    try {
-      const accessToken = localStorage.getItem("accessToken");
-      if (!accessToken) {
-        throw new Error("No access token found");
-      }
-
-      // Lấy URL xác thực từ backend
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/google/url`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (!response.data.data.url) {
-        throw new Error("No auth URL received");
-      }
-
-      // Cấu hình cửa sổ popup
-      const width = 500;
-      const height = 600;
-      const left = (window.innerWidth - width) / 2 + window.screenX;
-      const top = (window.innerHeight - height) / 2 + window.screenY;
-
-      // Tạo window features string
-      const features = [
-        `width=${width}`,
-        `height=${height}`,
-        `left=${left}`,
-        `top=${top}`,
-        "resizable=yes",
-        "scrollbars=yes",
-        "status=yes",
-      ].join(",");
-
-      // Mở popup và lưu reference
-      const popupWindow = window.open(
-        response.data.data.url,
-        "_blank",
-        features
-      );
-
-      if (!popupWindow) {
-        toast.error("Popup was blocked. Please allow popups for this site.");
-        setLoading(null);
-        return;
-      }
-
-      // Xử lý message từ popup
-      const handleMessage = (event: MessageEvent) => {
-        const allowedOrigins = [
-          process.env.NEXT_PUBLIC_API_URL,
-          "http://localhost:8080",
-          "http://localhost:3000",
-        ];
-
-        if (allowedOrigins.includes(event.origin)) {
-          if (event.data.success) {
-            toast.success("Google account linked successfully");
-            setUserData((prev) => ({
-              ...prev!,
-              linkedAccounts: {
-                ...prev!.linkedAccounts,
-                google: true,
-              },
-            }));
-          } else {
-            toast.error(event.data.error || "Failed to link Google account");
-          }
-
-          // Cleanup
-          window.removeEventListener("message", handleMessage);
-          setLoading(null);
-        }
-      };
-
-      // Thêm event listener cho message
-      window.addEventListener("message", handleMessage);
-
-      // Kiểm tra popup đóng
-      const checkPopupClosed = setInterval(() => {
-        if (popupWindow.closed) {
-          clearInterval(checkPopupClosed);
-          window.removeEventListener("message", handleMessage);
-          setLoading(null);
-        }
-      }, 1000);
-    } catch (error) {
-      console.error("Error:", error);
-      if (error instanceof AxiosError) {
-        toast.error(
-          error.response?.data?.message || "Failed to link Google account"
-        );
-      } else {
-        toast.error(
-          (error as Error).message || "Failed to link Google account"
-        );
-      }
-      setLoading(null);
-    }
-  };
-
-  const handleTwitterLink = async () => {
-    setLoading("twitter");
+  const handleSocialLink = async (
+    provider: "google" | "twitter" | "github"
+  ) => {
+    setLoading(provider);
     let popupWindow: Window | null = null;
     let checkPopupInterval: NodeJS.Timeout | null = null;
 
@@ -163,64 +58,62 @@ export default function DashboardPage() {
       setLoading(null);
     };
 
-    // Định nghĩa interface cho message data
-    interface MessageData {
-      success: boolean;
-      provider: string;
-      message?: string;
-      error?: string;
-    }
+    const handleMessage = (event: MessageEvent) => {
+      // Ignore React DevTools messages
+      if (event.data.source === "react-devtools-bridge") {
+        return;
+      }
 
-    const handleMessage = (event: MessageEvent<MessageData>) => {
-      try {
-        console.log("Received message event:", event);
+      console.log("Received message:", event.data);
 
-        const allowedOrigins = [
-          process.env.NEXT_PUBLIC_API_URL,
-          "http://localhost:8080",
-          "http://localhost:3000",
-        ];
+      // Allow messages from your backend domain
+      const allowedOrigins = [
+        process.env.NEXT_PUBLIC_API_URL,
+        "http://localhost:3000",
+        "http://localhost:8080",
+      ];
 
-        // Kiểm tra origin và data
-        if (!allowedOrigins.includes(event.origin)) {
-          console.warn("Message from unauthorized origin:", event.origin);
-          return;
+      console.log("Message origin:", event.origin);
+      console.log("Allowed origins:", allowedOrigins);
+
+      // More permissive origin check for development
+      const isAllowedOrigin =
+        process.env.NODE_ENV === "development"
+          ? true // Accept all origins in development
+          : allowedOrigins.includes(event.origin);
+
+      if (isAllowedOrigin && event.data) {
+        console.log("Processing message:", event.data);
+
+        // Check if the message has the expected structure
+        if (typeof event.data === "object" && "success" in event.data) {
+          if (event.data.success) {
+            toast.success(
+              `${
+                provider.charAt(0).toUpperCase() + provider.slice(1)
+              } account linked successfully`
+            );
+            setUserData((prev) => ({
+              ...prev!,
+              linkedAccounts: {
+                ...prev!.linkedAccounts,
+                [provider]: true,
+              },
+            }));
+          } else {
+            const errorMessage =
+              event.data.error || `Failed to link ${provider} account`;
+            console.error("Link error:", errorMessage);
+            toast.error(errorMessage);
+          }
+
+          cleanup();
+          if (popupWindow && !popupWindow.closed) {
+            popupWindow.close();
+          }
         }
-
-        if (!event.data) {
-          console.warn("No data in message event");
-          return;
-        }
-
-        const { success, provider, message, error } = event.data;
-
-        // Kiểm tra xem có phải message từ Twitter OAuth không
-        if (provider !== "twitter") {
-          return;
-        }
-
-        if (success) {
-          toast.success(message || "Twitter account linked successfully");
-          setUserData((prev) => ({
-            ...prev!,
-            linkedAccounts: {
-              ...prev!.linkedAccounts,
-              twitter: true,
-            },
-          }));
-        } else {
-          toast.error(error || "Failed to link Twitter account");
-        }
-
-        // Cleanup
-        cleanup();
-        if (popupWindow && !popupWindow.closed) {
-          popupWindow.close();
-        }
-      } catch (err) {
-        console.error("Error handling message:", err);
-        toast.error("Failed to process Twitter linking response");
-        cleanup();
+      } else {
+        console.log("Message rejected - invalid origin or data");
       }
     };
 
@@ -230,25 +123,11 @@ export default function DashboardPage() {
         throw new Error("No access token found");
       }
 
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/twitter/url`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (!response.data.data.url) {
-        throw new Error("No auth URL received");
-      }
-
-      // Cấu hình cửa sổ popup
+      // Configure popup window
       const width = 500;
       const height = 600;
       const left = (window.innerWidth - width) / 2 + window.screenX;
       const top = (window.innerHeight - height) / 2 + window.screenY;
-
       const features = [
         `width=${width}`,
         `height=${height}`,
@@ -262,57 +141,51 @@ export default function DashboardPage() {
         "location=yes",
       ].join(",");
 
-      // Thêm event listener trước khi mở popup
+      // Add event listener before opening popup
       window.addEventListener("message", handleMessage);
 
-      // Mở popup
-      popupWindow = window.open(response.data.data.url, "_blank", features);
+      // Fix the URL construction to avoid duplicate /api/v1
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(
+        /\/api\/v1\/?$/,
+        ""
+      );
+      const authUrl = `${baseUrl}/api/v1/issuer/me/link/${provider}`;
+      const urlWithToken = `${authUrl}?access_token=${encodeURIComponent(
+        accessToken
+      )}`;
+
+      console.log("Opening popup with URL:", urlWithToken);
+      popupWindow = window.open(urlWithToken, "_blank", features);
 
       if (!popupWindow) {
-        cleanup();
         throw new Error(
           "Popup was blocked. Please allow popups for this site."
         );
       }
 
-      // Focus vào popup
-      popupWindow.focus();
-
-      // Kiểm tra popup đóng
+      // Check if popup is closed
       checkPopupInterval = setInterval(() => {
         if (popupWindow?.closed) {
           console.log("Popup was closed");
           cleanup();
-          if (loading === "twitter") {
-            toast.error("Twitter linking was cancelled");
+          if (loading === provider) {
+            toast.error(`${provider} linking was cancelled`);
           }
         }
       }, 1000);
     } catch (error) {
-      console.error("Twitter linking error:", error);
-      if (error instanceof AxiosError) {
-        const errorMessage = error.response?.data?.message || error.message;
-        toast.error(
-          errorMessage === "Network Error"
-            ? "Unable to connect to the server"
-            : `Failed to link Twitter account: ${errorMessage}`
-        );
-      } else {
-        toast.error(
-          (error as Error).message || "Failed to link Twitter account"
-        );
-      }
+      console.error(`${provider} linking error:`, error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : `Failed to link ${provider} account`
+      );
       cleanup();
     }
-
-    // Cleanup khi component unmount
-    return () => {
-      cleanup();
-      if (popupWindow && !popupWindow.closed) {
-        popupWindow.close();
-      }
-    };
   };
+  // Thay thế các hàm cũ bằng hàm mới
+  const handleGoogleLink = () => handleSocialLink("google");
+  const handleTwitterLink = () => handleSocialLink("twitter");
 
   const handleLogout = async () => {
     try {
