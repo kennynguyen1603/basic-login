@@ -151,7 +151,7 @@ export default function DashboardPage() {
         ""
       );
       const authUrl = `${baseUrl}/api/v1/issuer/me/link/${provider}`;
-      const urlWithToken = `${authUrl}?access_token=${encodeURIComponent(
+      const urlWithToken = `${authUrl}?accessToken=${encodeURIComponent(
         accessToken
       )}`;
 
