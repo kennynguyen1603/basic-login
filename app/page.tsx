@@ -34,9 +34,6 @@ export default function LoginPage() {
 
       const { nonce, message } = nonceResponse.data.data;
 
-      console.log("Nonce response:", nonce);
-      console.log("Message response:", message);
-
       // 2. Sign message with wallet
       if (!signMessage) {
         throw new Error("Wallet does not support message signing");
@@ -47,8 +44,6 @@ export default function LoginPage() {
         message: message,
         nonce: nonce,
       });
-
-      console.log("Signature response:", signedMessage);
 
       // Construct the login payload
       const loginPayload = {
@@ -63,8 +58,6 @@ export default function LoginPage() {
         `${API_URL_AUTH}/wallet-login`,
         loginPayload
       );
-
-      console.log("Login response:", loginResponse);
 
       const { accessToken, refreshToken, user } = loginResponse.data.data;
 

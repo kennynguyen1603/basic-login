@@ -6,6 +6,7 @@ import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FaGoogle, FaTwitter } from "react-icons/fa";
+import { IconType } from "react-icons";
 import toast from "react-hot-toast";
 import { truncateAddress } from "@/lib/utils";
 import { API_URL_AUTH } from "../page";
@@ -51,13 +52,9 @@ export default function DashboardPage() {
         throw new Error("No access token found");
       }
 
-      console.log(
-        "Calling Google link API with URL:",
-        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/google`
-      );
-
-      const { data } = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/google`,
+      // Lấy URL xác thực từ backend
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/google/url`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -65,35 +62,176 @@ export default function DashboardPage() {
         }
       );
 
-      console.log("Google link API response:", data);
-      window.location.href = data.url;
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        console.error("Google linking error details:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          config: error.config,
-        });
-      } else {
-        console.error("Unexpected error:", error);
+      if (!response.data.data.url) {
+        throw new Error("No auth URL received");
       }
-      toast.error("Failed to link Google account");
-    } finally {
+
+      // Cấu hình cửa sổ popup
+      const width = 500;
+      const height = 600;
+      const left = (window.innerWidth - width) / 2 + window.screenX;
+      const top = (window.innerHeight - height) / 2 + window.screenY;
+
+      // Tạo window features string
+      const features = [
+        `width=${width}`,
+        `height=${height}`,
+        `left=${left}`,
+        `top=${top}`,
+        "resizable=yes",
+        "scrollbars=yes",
+        "status=yes",
+      ].join(",");
+
+      // Mở popup và lưu reference
+      const popupWindow = window.open(
+        response.data.data.url,
+        "_blank",
+        features
+      );
+
+      if (!popupWindow) {
+        toast.error("Popup was blocked. Please allow popups for this site.");
+        setLoading(null);
+        return;
+      }
+
+      // Xử lý message từ popup
+      const handleMessage = (event: MessageEvent) => {
+        const allowedOrigins = [
+          process.env.NEXT_PUBLIC_API_URL,
+          "http://localhost:8080",
+          "http://localhost:3000",
+        ];
+
+        if (allowedOrigins.includes(event.origin)) {
+          if (event.data.success) {
+            toast.success("Google account linked successfully");
+            setUserData((prev) => ({
+              ...prev!,
+              linkedAccounts: {
+                ...prev!.linkedAccounts,
+                google: true,
+              },
+            }));
+          } else {
+            toast.error(event.data.error || "Failed to link Google account");
+          }
+
+          // Cleanup
+          window.removeEventListener("message", handleMessage);
+          setLoading(null);
+        }
+      };
+
+      // Thêm event listener cho message
+      window.addEventListener("message", handleMessage);
+
+      // Kiểm tra popup đóng
+      const checkPopupClosed = setInterval(() => {
+        if (popupWindow.closed) {
+          clearInterval(checkPopupClosed);
+          window.removeEventListener("message", handleMessage);
+          setLoading(null);
+        }
+      }, 1000);
+    } catch (error) {
+      console.error("Error:", error);
+      if (error instanceof AxiosError) {
+        toast.error(
+          error.response?.data?.message || "Failed to link Google account"
+        );
+      } else {
+        toast.error(
+          (error as Error).message || "Failed to link Google account"
+        );
+      }
       setLoading(null);
     }
   };
 
   const handleTwitterLink = async () => {
     setLoading("twitter");
+    let popupWindow: Window | null = null;
+    let checkPopupInterval: NodeJS.Timeout | null = null;
+
+    const cleanup = () => {
+      if (checkPopupInterval) {
+        clearInterval(checkPopupInterval);
+      }
+      window.removeEventListener("message", handleMessage);
+      setLoading(null);
+    };
+
+    // Định nghĩa interface cho message data
+    interface MessageData {
+      success: boolean;
+      provider: string;
+      message?: string;
+      error?: string;
+    }
+
+    const handleMessage = (event: MessageEvent<MessageData>) => {
+      try {
+        console.log("Received message event:", event);
+
+        const allowedOrigins = [
+          process.env.NEXT_PUBLIC_API_URL,
+          "http://localhost:8080",
+          "http://localhost:3000",
+        ];
+
+        // Kiểm tra origin và data
+        if (!allowedOrigins.includes(event.origin)) {
+          console.warn("Message from unauthorized origin:", event.origin);
+          return;
+        }
+
+        if (!event.data) {
+          console.warn("No data in message event");
+          return;
+        }
+
+        const { success, provider, message, error } = event.data;
+
+        // Kiểm tra xem có phải message từ Twitter OAuth không
+        if (provider !== "twitter") {
+          return;
+        }
+
+        if (success) {
+          toast.success(message || "Twitter account linked successfully");
+          setUserData((prev) => ({
+            ...prev!,
+            linkedAccounts: {
+              ...prev!.linkedAccounts,
+              twitter: true,
+            },
+          }));
+        } else {
+          toast.error(error || "Failed to link Twitter account");
+        }
+
+        // Cleanup
+        cleanup();
+        if (popupWindow && !popupWindow.closed) {
+          popupWindow.close();
+        }
+      } catch (err) {
+        console.error("Error handling message:", err);
+        toast.error("Failed to process Twitter linking response");
+        cleanup();
+      }
+    };
+
     try {
       const accessToken = localStorage.getItem("accessToken");
       if (!accessToken) {
         throw new Error("No access token found");
       }
 
-      const { data } = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/twitter`,
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/issuer/me/link/twitter/url`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -101,13 +239,79 @@ export default function DashboardPage() {
         }
       );
 
-      window.location.href = data.url;
+      if (!response.data.data.url) {
+        throw new Error("No auth URL received");
+      }
+
+      // Cấu hình cửa sổ popup
+      const width = 500;
+      const height = 600;
+      const left = (window.innerWidth - width) / 2 + window.screenX;
+      const top = (window.innerHeight - height) / 2 + window.screenY;
+
+      const features = [
+        `width=${width}`,
+        `height=${height}`,
+        `left=${left}`,
+        `top=${top}`,
+        "resizable=yes",
+        "scrollbars=yes",
+        "status=yes",
+        "toolbar=no",
+        "menubar=no",
+        "location=yes",
+      ].join(",");
+
+      // Thêm event listener trước khi mở popup
+      window.addEventListener("message", handleMessage);
+
+      // Mở popup
+      popupWindow = window.open(response.data.data.url, "_blank", features);
+
+      if (!popupWindow) {
+        cleanup();
+        throw new Error(
+          "Popup was blocked. Please allow popups for this site."
+        );
+      }
+
+      // Focus vào popup
+      popupWindow.focus();
+
+      // Kiểm tra popup đóng
+      checkPopupInterval = setInterval(() => {
+        if (popupWindow?.closed) {
+          console.log("Popup was closed");
+          cleanup();
+          if (loading === "twitter") {
+            toast.error("Twitter linking was cancelled");
+          }
+        }
+      }, 1000);
     } catch (error) {
       console.error("Twitter linking error:", error);
-      toast.error("Failed to link Twitter account");
-    } finally {
-      setLoading(null);
+      if (error instanceof AxiosError) {
+        const errorMessage = error.response?.data?.message || error.message;
+        toast.error(
+          errorMessage === "Network Error"
+            ? "Unable to connect to the server"
+            : `Failed to link Twitter account: ${errorMessage}`
+        );
+      } else {
+        toast.error(
+          (error as Error).message || "Failed to link Twitter account"
+        );
+      }
+      cleanup();
     }
+
+    // Cleanup khi component unmount
+    return () => {
+      cleanup();
+      if (popupWindow && !popupWindow.closed) {
+        popupWindow.close();
+      }
+    };
   };
 
   const handleLogout = async () => {
@@ -261,6 +465,7 @@ export default function DashboardPage() {
                   <FaGoogle
                     className="w-5 h-5 text-red-500"
                     aria-hidden="true"
+                    as="svg"
                   />
                 </span>
                 {loading === "google" ? (
@@ -284,6 +489,7 @@ export default function DashboardPage() {
                   <FaTwitter
                     className="w-5 h-5 text-blue-400"
                     aria-hidden="true"
+                    as="svg"
                   />
                 </span>
                 {loading === "twitter" ? (
