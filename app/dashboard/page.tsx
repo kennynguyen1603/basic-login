@@ -71,6 +71,7 @@ export default function DashboardPage() {
         process.env.NEXT_PUBLIC_API_URL,
         "http://localhost:3000",
         "http://localhost:8080",
+        "https://basic-login-rose.vercel.app",
       ];
 
       console.log("Message origin:", event.origin);
